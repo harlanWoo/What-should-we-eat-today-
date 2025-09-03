@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>今天吃啥?</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 80%, rgba(120, 219, 226, 0.3) 0%, transparent 50%);
+      z-index: -1;
+      animation: bgFloat 20s ease-in-out infinite;
+    }
+    
+    @keyframes bgFloat {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(30px, -30px) rotate(0.5deg); }
+      66% { transform: translate(-20px, 20px) rotate(-0.5deg); }
+    }
+    
+    .app-container {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 32px;
+      padding: 48px 32px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(30px);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      animation: containerFloat 6s ease-in-out infinite;
+    }
+    
+    .app-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      z-index: 1;
+    }
+    
+    @keyframes containerFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .header {
+      margin-bottom: 40px;
+      position: relative;
+      z-index: 2;
+    }
+    
+    .title {
+      font-size: 2.75rem;
+      font-weight: 800;
+      color: #2d3748;
+      margin-bottom: 12px;
+      letter-spacing: -0.025em;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: titlePulse 3s ease-in-out infinite;
+    }
+    
+    @keyframes titlePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    
+    .subtitle {
+      color: #718096;
+      font-size: 1.1rem;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    
+    .wheel-section {
+      position: relative;
+      margin: 40px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .wheel-container {
+      position: relative;
+      display: inline-block;
+      margin: 20px 0;
+    }
+    
+    .wheel-frame {
+      position: relative;
+      padding: 20px;
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border-radius: 50%;
+      box-shadow: 
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+    
+    canvas {
+      border-radius: 50%;
+      display: block;
+      transition: transform 0.2s ease;
+    }
+    
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      backdrop-filter: blur(4px);
+    }
+    
+    .loading-overlay.show {
+      display: flex;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e2e8f0;
+      border-top: 3px solid #6366f1;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .controls {
+      margin: 32px 0;
+    }
+    
+    .spin-button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      color: white;
+      border: none;
+      padding: 20px 40px;
+      border-radius: 20px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+      position: relative;
+      overflow: hidden;
+      min-width: 180px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .spin-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      transition: left 0.6s;
+    }
+    
+    .spin-button:hover::before {
+      left: 100%;
+    }
+    
+    .spin-button:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
+    }
+    
+    .spin-button:active {
+      transform: translateY(-1px) scale(0.98);
+    }
+    
+    .spin-button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .result-section {
+      margin-top: 32px;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .result-card {
+      background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+      border: 2px solid rgba(252, 182, 159, 0.5);
+      border-radius: 24px;
+      padding: 32px;
+      opacity: 0;
+      transform: translateY(30px) scale(0.8) rotateX(15deg);
+      transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      max-width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .result-card.show {
+      opacity: 1;
+      transform: translateY(0) scale(1) rotateX(0deg);
+    }
+    
+    .result-food {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #2d3748;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .result-emoji {
+      font-size: 3rem;
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+      animation: emojiPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.3s both;
+    }
+    
+    @keyframes emojiPop {
+      0% { transform: scale(0) rotate(-180deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    
+    .result-message {
+      color: #718096;
+      font-size: 1.1rem;
+      font-weight: 500;
+      line-height: 1.6;
+      animation: messageSlide 0.6s ease 0.6s both;
+    }
+    
+    @keyframes messageSlide {
+      0% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    
+    .wheel-spinning {
+      animation: wheelPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes wheelPulse {
+      0%, 100% { 
+        transform: scale(1);
+        filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1)) hue-rotate(0deg);
+      }
+      50% { 
+        transform: scale(1.05);
+        filter: drop-shadow(0 20px 30px rgba(102, 126, 234, 0.3)) hue-rotate(90deg);
+      }
+    }
+    
+    @media (max-width: 640px) {
+      .app-container {
+        padding: 32px 24px;
+        margin: 16px;
+      }
+      
+      .title {
+        font-size: 2rem;
+      }
+      
+      canvas {
+        width: 280px;
+        height: 280px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="header">
+      <h1 class="title">今天吃啥？</h1>
+      <p class="subtitle">讓命運決定你的美味時光</p>
+    </div>
+    
+    <div class="wheel-section">
+      <div class="wheel-container">
+        <div class="wheel-frame">
+          <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+          </div>
+          <canvas id="wheelCanvas" width="320" height="320"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <div class="controls">
+      <button class="spin-button" id="spinButton" onclick="startSpin()">
+        🎲 開始轉盤
+      </button>
+    </div>
+    
+    <div class="result-section">
+      <div class="result-card" id="resultCard">
+        <div class="result-food">
+          <span class="result-emoji" id="resultEmoji"></span>
+          <span id="resultName"></span>
+        </div>
+        <div class="result-message" id="resultMessage"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 食物選項配置
+    const foodOptions = [
+      { name: "健康便當", emoji: "🥗" },
+      { name: "不健康便當", emoji: "🍔" },
+      { name: "水餃+鍋貼", emoji: "🥟" },
+      { name: "炒飯", emoji: "🍳" },
+      { name: "砂鍋", emoji: "🍲" },
+      { name: "早午餐", emoji: "🥐" },
+      { name: "飯糰", emoji: "🍙" },
+      { name: "早餐店", emoji: "🥪" },
+      { name: "麻辣燙", emoji: "🌶️" },
+      { name: "乾麵", emoji: "🍜" }
+    ];
+
+    const foodMessages = {
+      "健康便當": ["今天吃得好，明天不會後悔！", "清爽又飽足，身體感謝你！", "吃得健康，心情也跟著亮起來！"],
+      "不健康便當": ["偶爾放縱一下，人生才有味道！", "今天就是要爽！熱量先放一邊！", "罪惡感？先吃再說！"],
+      "水餃+鍋貼": ["外酥內嫩，誰能拒絕這一口？", "一口一個，幸福感爆棚！", "鍋貼水餃雙拼，完美搭配！"],
+      "炒飯": ["粒粒分明，香氣撲鼻！", "炒得好，才叫真功夫！", "加蛋加肉加靈魂，炒飯就是王道！"],
+      "砂鍋": ["熱呼呼的砂鍋，暖胃也暖心！", "燉得入味，每一口都是精華！", "砂鍋一上桌，氣氛直接升級！"],
+      "早午餐": ["優雅地吃一頓，讓生活慢下來！", "咖啡配蛋，完美早午餐儀式感！", "今天就是要吃點不一樣的！"],
+      "飯糰": ["簡單卻不平凡，飯糰就是這麼有魅力！", "一口咬下，滿滿的料在嘴裡爆開！", "台式靈魂小吃，絕對不輸大餐！"],
+      "早餐店": ["蛋餅、吐司、奶茶，經典不敗！", "早餐店就是台灣人的心靈寄託！", "今天來點熟悉的味道吧～"],
+      "麻辣燙": ["辣得過癮，麻得開心！", "選料自由，吃出自己的風格！", "麻辣燙一上桌，味蕾直接開趴！"],
+      "乾麵": ["簡單乾麵，藏著老派的美味！", "醬香撲鼻，拌一拌就上癮！", "乾麵才是台灣人的靈魂午餐！"]
+    };
+
+    // 現代色彩搭配
+    const wheelColors = [
+      "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA726", 
+      "#AB47BC", "#26A69A", "#FF7043", "#5C6BC0",
+      "#EC407A", "#66BB6A"
+    ];
+    
+    // Canvas 設置
+    const canvas = document.getElementById("wheelCanvas");
+    const ctx = canvas.getContext("2d");
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) - 10;
+    
+    // 狀態變數
+    let currentRotation = 0;
+    let isSpinning = false;
+    let selectedIndex = -1;
+
+    // 繪製輪盤
+    function drawWheel() {
+      const sliceAngle = (2 * Math.PI) / foodOptions.length;
+      
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(currentRotation);
+      
+      for (let i = 0; i < foodOptions.length; i++) {
+        const startAngle = i * sliceAngle;
+        const endAngle = (i + 1) * sliceAngle;
+        const isHighlighted = selectedIndex === i && !isSpinning;
+        
+        // 繪製扇形
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, startAngle, endAngle);
+        ctx.closePath();
+        
+        if (isHighlighted) {
+          // 高亮選中項
+          const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+          gradient.addColorStop(0, wheelColors[i] + 'E6');
+          gradient.addColorStop(1, wheelColors[i] + '80');
+          ctx.fillStyle = gradient;
+        } else {
+          // 普通狀態
+          const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+          gradient.addColorStop(0, wheelColors[i] + '40');
+          gradient.addColorStop(1, wheelColors[i] + '20');
+          ctx.fillStyle = gradient;
+        }
+        ctx.fill();
+        
+        // 邊框
+        ctx.strokeStyle = isHighlighted ? wheelColors[i] : wheelColors[i] + '60';
+        ctx.lineWidth = isHighlighted ? 3 : 1;
+        ctx.stroke();
+        
+        // 文字和表情符號
+        ctx.save();
+        ctx.rotate(startAngle + sliceAngle / 2);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        
+        const textRadius = radius * 0.7;
+        
+        if (isHighlighted) {
+          // 高亮文字
+          ctx.font = "bold 24px Arial";
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = "rgba(0,0,0,0.3)";
+          ctx.lineWidth = 2;
+          ctx.strokeText(foodOptions[i].emoji, textRadius, -8);
+          ctx.fillText(foodOptions[i].emoji, textRadius, -8);
+          
+          ctx.font = "bold 14px Inter";
+          ctx.strokeText(foodOptions[i].name, textRadius, 12);
+          ctx.fillText(foodOptions[i].name, textRadius, 12);
+        } else {
+          // 普通文字
+          ctx.font = "18px Arial";
+          ctx.fillStyle = wheelColors[i];
+          ctx.fillText(foodOptions[i].emoji, textRadius, -6);
+          
+          ctx.font = "12px Inter";
+          ctx.fillStyle = "#475569";
+          ctx.fillText(foodOptions[i].name, textRadius, 10);
+        }
+        
+        ctx.restore();
+      }
+      
+      ctx.restore();
+    }
+
+    // 計算選中的選項
+    function getSelectedIndex(rotation) {
+      const sliceAngle = (2 * Math.PI) / foodOptions.length;
+      let normalizedRotation = (-rotation) % (2 * Math.PI);
+      if (normalizedRotation < 0) normalizedRotation += 2 * Math.PI;
+      normalizedRotation += sliceAngle / 2;
+      return Math.floor(normalizedRotation / sliceAngle) % foodOptions.length;
+    }
+
+    // 開始轉盤
+    function startSpin() {
+      if (isSpinning) return;
+      
+      isSpinning = true;
+      selectedIndex = -1;
+      
+      // UI 更新
+      const spinButton = document.getElementById("spinButton");
+      const loadingOverlay = document.getElementById("loadingOverlay");
+      const resultCard = document.getElementById("resultCard");
+      const wheelFrame = document.querySelector(".wheel-frame");
+      
+      spinButton.disabled = true;
+      spinButton.innerHTML = "🌀 轉盤中...";
+      loadingOverlay.classList.add("show");
+      resultCard.classList.remove("show");
+      wheelFrame.classList.add("wheel-spinning");
+      
+      // 轉盤參數
+      const spins = 5 + Math.random() * 5;
+      const finalAngle = Math.random() * 2 * Math.PI;
+      const targetRotation = currentRotation + spins * 2 * Math.PI + finalAngle;
+      
+      // 動畫
+      const duration = 3000;
+      const startTime = performance.now();
+      const startRotation = currentRotation;
+      
+      function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        currentRotation = startRotation + (targetRotation - startRotation) * eased;
+        
+        drawWheel();
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          finishSpin();
+        }
+      }
+      
+      requestAnimationFrame(animate);
+    }
+
+    // 完成轉盤
+    function finishSpin() {
+      isSpinning = false;
+      selectedIndex = getSelectedIndex(currentRotation);
+      
+      drawWheel();
+      
+      const spinButton = document.getElementById("spinButton");
+      const loadingOverlay = document.getElementById("loadingOverlay");
+      const wheelFrame = document.querySelector(".wheel-frame");
+      
+      spinButton.disabled = false;
+      spinButton.innerHTML = "🎲 再轉一次";
+      loadingOverlay.classList.remove("show");
+      wheelFrame.classList.remove("wheel-spinning");
+      
+      setTimeout(showResult, 500);
+    }
+
+    // 顯示結果
+    function showResult() {
+      const selectedOption = foodOptions[selectedIndex];
+      const randomMessage = foodMessages[selectedOption.name][
+        Math.floor(Math.random() * foodMessages[selectedOption.name].length)
+      ];
+      
+      document.getElementById("resultEmoji").textContent = selectedOption.emoji;
+      document.getElementById("resultName").textContent = selectedOption.name;
+      document.getElementById("resultMessage").textContent = randomMessage;
+      document.getElementById("resultCard").classList.add("show");
+    }
+
+    // 初始化
+    drawWheel();
+  </script>
+</body>
+</html>
